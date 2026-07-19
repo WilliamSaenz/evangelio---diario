@@ -109,7 +109,7 @@ def generar_contenido(gospel: dict, api_key: str | None = None) -> dict:
         "generationConfig": {
             "temperature": 0.6,
             "responseMimeType": "application/json",
-            "maxOutputTokens": 8192,
+            "maxOutputTokens": 16384,
         },
     }
 
