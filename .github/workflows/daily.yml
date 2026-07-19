@@ -1,0 +1,35 @@
+name: Evangelio de Hoy - envío diario
+
+on:
+  schedule:
+    # 07:30 UTC = 04:30 ART (Argentina no tiene horario de verano,
+    # así que esta hora fija sirve todo el año)
+    - cron: "30 7 * * *"
+  workflow_dispatch: {}   # permite ejecutarlo a mano desde la pestaña Actions
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias Python
+        run: pip install -r requirements.txt
+
+      - name: Instalar Chromium para Playwright
+        run: playwright install --with-deps chromium
+
+      - name: Ejecutar
+        working-directory: scripts
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          WAPPFLY_TOKEN: ${{ secrets.WAPPFLY_TOKEN }}
+          WHATSAPP_TO: ${{ secrets.WHATSAPP_TO }}
+        run: python main.py
