@@ -28,7 +28,6 @@ def _get_text(url: str) -> str:
     resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
-    # quitamos scripts/estilos/nav para reducir ruido
     for tag in soup(["script", "style", "nav", "footer", "svg"]):
         tag.decompose()
     return soup.get_text("\n", strip=True)
@@ -42,22 +41,23 @@ def fetch_from_aciprensa(target_date: date) -> dict:
 
 
 def _parse_aciprensa(text: str, url: str) -> dict:
-    # Celebración: línea inmediatamente despues del titulo del calendario
     m_cel = re.search(
-        r"Lecturas y Evangelio del día\s*\n+([^\n]+)\n", text
+        r"\n([^\n]{3,80})\n+"
+        r"[a-záéíóúñ]+ \d{1,2},\s*\d{4}\n+"
+        r"«\s*Día anterior",
+        text,
+        re.IGNORECASE,
     )
     celebracion = m_cel.group(1).strip() if m_cel else None
 
     m_color = re.search(r"Color:\s*([A-Za-zÁÉÍÓÚñáéíóú]+)", text)
     color = m_color.group(1).strip() if m_color else None
 
-    # Bloque del Evangelio: la palabra "Evangelio" en su propia línea,
-    # seguida de la cita en la línea siguiente, hasta "Calendario Litúrgico:"
     m_ev = re.search(
         r"\nEvangelio\s*\n"
         r"([A-ZÁÉÍÓÚa-záéíóúñ][A-Za-zÁÉÍÓÚñáéíóú0-9,:\.\-\s]*?)\n"
         r"(.*?)"
-        r"\nCalendario Litúrgico:",
+        r"(?:\nOR\n|\nÚltimas noticias|\Z)",
         text,
         re.DOTALL,
     )
@@ -66,7 +66,6 @@ def _parse_aciprensa(text: str, url: str) -> dict:
 
     cita = m_ev.group(1).strip()
     cuerpo_crudo = m_ev.group(2).strip()
-    # quitamos numeros de versiculo pegados al inicio de linea (7Id y..., 8Curad..)
     cuerpo = re.sub(r"(?m)^\s*\d{1,3}", "", cuerpo_crudo)
     cuerpo = re.sub(r"\n{1,}", " ", cuerpo).strip()
     cuerpo = re.sub(r"\s{2,}", " ", cuerpo)
