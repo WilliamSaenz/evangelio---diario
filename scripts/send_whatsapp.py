@@ -35,7 +35,7 @@ def enviar_mensaje(texto: str, token: str | None = None, destino: str | None = N
     }
 
     resp = requests.post(WAPPFLY_URL_TEXTO, headers=headers, json=payload, timeout=30)
-    if resp.status_code not in (200, 201):
+    if resp.status_code not in (200, 201, 202):
         raise EnvioError(f"Wappfly respondió {resp.status_code}: {resp.text[:500]}")
     return resp.json() if resp.content else {}
 
@@ -62,6 +62,6 @@ def enviar_imagen(
     }
 
     resp = requests.post(WAPPFLY_URL_IMAGEN, headers=headers, json=payload, timeout=60)
-    if resp.status_code not in (200, 201):
+    if resp.status_code not in (200, 201, 202):
         raise EnvioError(f"Wappfly (imagen) respondió {resp.status_code}: {resp.text[:500]}")
     return resp.json() if resp.content else {}
