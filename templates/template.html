@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Nunito+Sans:wght@400;600;700;800&display=swap');
+
+  :root {
+    --teologia: #2E7D32;
+    --teologia-bg: #EAF3EA;
+    --psicologia: #1565C0;
+    --psicologia-bg: #E9F1FB;
+    --neuro: #6A1B9A;
+    --neuro-bg: #F2E9F7;
+    --dorado: #C9A227;
+    --dorado-dark: #9C7A15;
+    --rojo: #C62828;
+    --crema: #FBF6EC;
+    --texto: #2B2620;
+  }
+
+  * { box-sizing: border-box; margin:0; padding:0; }
+
+  body {
+    width: 1080px;
+    background: var(--crema);
+    font-family: 'Nunito Sans', sans-serif;
+    color: var(--texto);
+  }
+
+  .lamina { width: 1080px; background: var(--crema); padding-bottom: 6px; }
+
+  /* ---------- HEADER ---------- */
+  .header {
+    display: flex;
+    align-items: stretch;
+    background: #fff;
+    padding: 34px 40px 26px 40px;
+    gap: 30px;
+    position: relative;
+  }
+
+  .calendario {
+    flex: 0 0 150px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    overflow: hidden;
+    height: 175px;
+    position: relative;
+  }
+  .calendario .franja {
+    background: var(--rojo);
+    color: #fff;
+    text-align: center;
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: 1px;
+    padding: 9px 0 7px 0;
+    text-transform: uppercase;
+  }
+  .calendario .dia {
+    text-align: center;
+    font-size: 66px;
+    font-weight: 900;
+    color: #232323;
+    line-height: 1;
+    padding-top: 10px;
+    font-family: 'Merriweather', serif;
+  }
+  .calendario .mes {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #444;
+    text-transform: uppercase;
+  }
+  .calendario .anio {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #777;
+  }
+  .calendario::before, .calendario::after {
+    content: "";
+    position: absolute;
+    top: -6px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #d8d0bd;
+  }
+  .calendario::before { left: 24px; }
+  .calendario::after { right: 24px; }
+
+  .titulo-bloque { flex: 1; display:flex; flex-direction: column; justify-content: center; gap: 10px; z-index: 2;}
+  .titulo-bloque h1 {
+    font-family: 'Merriweather', serif;
+    font-weight: 900;
+    font-size: 46px;
+    line-height: 1.02;
+    color: #1c1c1c;
+    text-transform: uppercase;
+  }
+  .cita-capsula {
+    display: inline-block;
+    background: linear-gradient(180deg, #E7C85A, var(--dorado-dark));
+    color: #fff;
+    font-weight: 800;
+    font-size: 19px;
+    padding: 9px 26px;
+    border-radius: 30px;
+    width: fit-content;
+    box-shadow: 0 3px 8px rgba(156,122,21,0.35);
+  }
+
+  .header-ilustracion {
+    flex: 0 0 340px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  }
+  .header-ilustracion img { width: 100%; height: 100%; object-fit: cover; display:block; }
+
+  /* ---------- EVANGELIO BOX ---------- */
+  .evangelio-caja {
+    background: #fff;
+    margin: 22px 40px 0 40px;
+    border-radius: 16px;
+    padding: 30px 44px 26px 60px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    position: relative;
+  }
+  .comilla {
+    position: absolute;
+    left: 18px; top: 8px;
+    font-family: 'Merriweather', serif;
+    font-size: 70px;
+    color: var(--rojo);
+    font-weight: 900;
+    line-height: 1;
+  }
+  .evangelio-texto {
+    font-size: 20px;
+    line-height: 1.55;
+    text-align: justify;
+    color: #2c2c2c;
+  }
+  .evangelio-texto .destacado {
+    color: #B5651D;
+    font-weight: 800;
+  }
+
+  /* ---------- 3 COLUMNAS ---------- */
+  .columnas {
+    display: flex;
+    gap: 22px;
+    margin: 26px 40px 0 40px;
+  }
+  .columna {
+    flex: 1;
+    background: #fff;
+    border-radius: 16px;
+    padding: 22px 22px 18px 22px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+  }
+  .col-header { display:flex; align-items:center; gap:12px; margin-bottom: 14px; }
+  .col-icono {
+    width: 42px; height: 42px; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 20px; color: #fff; flex-shrink: 0;
+  }
+  .col-titulo { font-weight: 900; font-size: 17px; letter-spacing: 0.5px; }
+
+  .teologia .col-icono { background: var(--teologia); }
+  .teologia .col-titulo { color: var(--teologia); }
+  .psicologia .col-icono { background: var(--psicologia); }
+  .psicologia .col-titulo { color: var(--psicologia); }
+  .neurociencia .col-icono { background: var(--neuro); }
+  .neurociencia .col-titulo { color: var(--neuro); }
+
+  .col-img { width: 100%; height: 155px; border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+  .col-img img { width: 100%; height: 100%; object-fit: cover; display:block; }
+
+  .col-texto { font-size: 14.5px; line-height: 1.48; color: #3a3a3a; margin-bottom: 12px; flex-grow: 1; }
+
+  .col-frase { font-weight: 800; font-size: 15px; text-align:center; line-height: 1.35; padding: 4px 2px 12px 2px; }
+  .teologia .col-frase { color: var(--teologia); }
+  .psicologia .col-frase { color: var(--psicologia); }
+  .neurociencia .col-frase { color: var(--neuro); }
+
+  .col-fuente {
+    border-top: 1px solid #e8e4d8;
+    padding-top: 10px;
+    font-size: 11.5px;
+    color: #767267;
+    display: flex;
+    gap: 7px;
+    align-items: flex-start;
+  }
+  .col-fuente .ico { flex-shrink:0; margin-top:1px; }
+
+  /* ---------- PRACTICAS ---------- */
+  .practicas {
+    margin: 26px 40px 0 40px;
+    background: #1E5A34;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .practicas-titulo {
+    display:flex; align-items:center; gap: 12px;
+    background: #163F24;
+    color:#fff; font-weight:900; font-size:19px;
+    padding: 14px 26px; letter-spacing: 0.5px;
+  }
+  .practicas-grid { display:flex; padding: 24px 20px 26px 20px; }
+  .practica { flex:1; text-align:center; padding: 0 16px; color:#fff; position:relative; }
+  .practica:not(:last-child)::after {
+    content:""; position:absolute; right:0; top:8px; bottom:8px; width:1px;
+    background: rgba(255,255,255,0.25);
+  }
+  .practica-icono {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(255,255,255,0.14);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 26px; margin: 0 auto 10px auto;
+  }
+  .practica-titulo { font-weight:900; font-size:15px; margin-bottom:6px; letter-spacing:0.5px; }
+  .practica-texto { font-size: 13px; line-height:1.4; color:#EAF3EC; }
+
+  /* ---------- FRASE FINAL ---------- */
+  .frase-final {
+    margin: 22px 40px 0 40px;
+    background: linear-gradient(90deg, #F3E7D0, #F8EFE0);
+    border-radius: 16px;
+    display:flex; align-items:center; gap: 22px;
+    padding: 20px 30px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+  }
+  .corazon {
+    flex-shrink:0; width:58px; height:58px; border-radius:50%;
+    background: var(--rojo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px;
+  }
+  .frase-final-texto {
+    flex:1; font-family:'Merriweather', serif; font-weight:800; font-size: 21px;
+    color:#2b2620; text-align:center; line-height:1.35;
+  }
+  .frase-final-img { flex-shrink:0; width: 130px; height: 78px; border-radius: 10px; overflow:hidden; }
+  .frase-final-img img { width:100%; height:100%; object-fit:cover; display:block; }
+
+  /* ---------- FOOTER ---------- */
+  .footer {
+    margin: 20px 40px 30px 40px;
+    background: #2B2620;
+    border-radius: 12px;
+    display:flex; align-items:center; gap: 22px;
+    padding: 16px 24px;
+    color: #D9D4C6;
+    font-size: 11.5px;
+    position: relative;
+  }
+  .footer .fuentes-label { font-weight:900; color:#fff; flex-shrink:0; display:flex; align-items:center; gap:8px; }
+  .footer .fuentes-lista { display:flex; gap: 22px; flex:1; line-height:1.4; }
+  .footer .fuentes-lista div { flex:1; }
+  .footer .fuentes-lista b { color:#fff; }
+  .badge-ws {
+    flex-shrink:0; background: var(--rojo); color:#fff; font-weight:900;
+    font-size: 13px; padding: 7px 14px; border-radius: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="lamina">
+
+  <div class="header">
+    <div class="calendario">
+      <div class="franja">{{ dia_semana }}</div>
+      <div class="dia">{{ dia_numero }}</div>
+      <div class="mes">{{ mes }}</div>
+      <div class="anio">{{ anio }}</div>
+    </div>
+    <div class="titulo-bloque">
+      <h1>Evangelio<br>de Hoy</h1>
+      <div class="cita-capsula">{{ cita_biblica }}</div>
+    </div>
+    <div class="header-ilustracion">
+      <img src="{{ img_header }}">
+    </div>
+  </div>
+
+  <div class="evangelio-caja">
+    <div class="comilla">&ldquo;</div>
+    <div class="evangelio-texto">{{ evangelio_texto|safe }}</div>
+  </div>
+
+  <div class="columnas">
+    <div class="columna teologia">
+      <div class="col-header">
+        <div class="col-icono">&#10013;</div>
+        <div class="col-titulo">TEOLOGÍA</div>
+      </div>
+      <div class="col-img"><img src="{{ img_teologia }}"></div>
+      <div class="col-texto">{{ teologia_texto }}</div>
+      <div class="col-frase">{{ teologia_frase }}</div>
+      <div class="col-fuente"><span class="ico">&#128214;</span><span>{{ teologia_fuente }}</span></div>
+    </div>
+
+    <div class="columna psicologia">
+      <div class="col-header">
+        <div class="col-icono">&#129504;</div>
+        <div class="col-titulo">PSICOLOGÍA</div>
+      </div>
+      <div class="col-img"><img src="{{ img_psicologia }}"></div>
+      <div class="col-texto">{{ psicologia_texto }}</div>
+      <div class="col-frase">{{ psicologia_frase }}</div>
+      <div class="col-fuente"><span class="ico">&#128214;</span><span>{{ psicologia_fuente }}</span></div>
+    </div>
+
+    <div class="columna neurociencia">
+      <div class="col-header">
+        <div class="col-icono">&#9889;</div>
+        <div class="col-titulo">NEUROCIENCIA</div>
+      </div>
+      <div class="col-img"><img src="{{ img_neurociencia }}"></div>
+      <div class="col-texto">{{ neurociencia_texto }}</div>
+      <div class="col-frase">{{ neurociencia_frase }}</div>
+      <div class="col-fuente"><span class="ico">&#128214;</span><span>{{ neurociencia_fuente }}</span></div>
+    </div>
+  </div>
+
+  <div class="practicas">
+    <div class="practicas-titulo"><span>&#9989;</span><span>PRÁCTICAS DE HOY</span></div>
+    <div class="practicas-grid">
+      {% for p in practicas %}
+      <div class="practica">
+        <div class="practica-icono">{{ p.icono|safe }}</div>
+        <div class="practica-titulo">{{ loop.index }}. {{ p.titulo }}</div>
+        <div class="practica-texto">{{ p.texto }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="frase-final">
+    <div class="corazon">&#10084;</div>
+    <div class="frase-final-texto">{{ frase_final }}</div>
+    <div class="frase-final-img"><img src="{{ img_cierre }}"></div>
+  </div>
+
+  <div class="footer">
+    <div class="fuentes-label"><span>&#128214;</span><span>FUENTES:</span></div>
+    <div class="fuentes-lista">
+      <div><b>Evangelio:</b> {{ fuente_evangelio }}</div>
+      <div><b>Segunda fuente:</b> {{ fuente_segunda }}</div>
+      <div><b>Otras referencias:</b> {{ fuente_otras }}</div>
+    </div>
+    <div class="badge-ws">{{ ws_numero }}</div>
+  </div>
+
+</div>
+</body>
+</html>
