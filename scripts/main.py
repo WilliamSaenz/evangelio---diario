@@ -6,8 +6,8 @@ Orquesta la corrida diaria completa:
   3. Generar el contenido y los prompts de imagen (Gemini, gratis)
   4. Generar las 4 ilustraciones (Pollinations/Flux, gratis)
   5. Renderizar la lámina final (PNG)
-  6. Enviarla como imagen a WhatsApp (Wappfly, gratis) para que la revises
-     antes de subirla a tu estado.
+  6. Enviarla como imagen adjunta por correo (Gmail SMTP, gratis) para
+     que la revises antes de subirla a tu estado de WhatsApp.
 
 Se ejecuta una vez al día vía GitHub Actions (ver .github/workflows/daily.yml).
 """
@@ -21,7 +21,7 @@ from generate_content import generar_contenido, GeminiError
 from generate_images import generar_todas, ImagenError
 from render_lamina import armar_html, renderizar_png
 from format_message import calcular_ws
-from send_whatsapp import enviar_imagen, EnvioError
+from send_email import enviar_email, EnvioError
 
 TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 SALIDA_PNG = "/tmp/lamina_hoy.png"
@@ -48,14 +48,18 @@ def run():
     renderizar_png(html, SALIDA_PNG)
 
     ws = calcular_ws(hoy)
-    caption = f"✝️ {gospel['cita']} — {ws}\nRevisá y subila a tu estado si te gusta 🙌"
+    asunto = f"✝️ Evangelio de Hoy — {gospel['cita']} — {ws}"
+    cuerpo = (
+        f"Evangelio de Hoy — {gospel['cita']} ({ws})\n\n"
+        f"Adjunto la lámina del día. Revisala y subila a tu estado si te gusta 🙌"
+    )
 
     with open(SALIDA_PNG, "rb") as f:
       imagen_bytes = f.read()
 
     print(f"[main] Tamaño de la imagen: {len(imagen_bytes)} bytes")
-    print("[main] Enviando la lámina por WhatsApp...")
-    resultado = enviar_imagen(imagen_bytes, caption=caption, mimetype="image/png")
+    print("[main] Enviando la lámina por correo...")
+    resultado = enviar_email(imagen_bytes, asunto=asunto, cuerpo=cuerpo, mimetype="image/png")
     print(f"[main] Enviado OK: {resultado}")
 
 
