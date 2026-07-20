@@ -50,9 +50,12 @@ def run():
     ws = calcular_ws(hoy)
     caption = f"✝️ {gospel['cita']} — {ws}\nRevisá y subila a tu estado si te gusta 🙌"
 
-    print("[main] Enviando la lámina por WhatsApp...")
     with open(SALIDA_PNG, "rb") as f:
-        resultado = enviar_imagen(f.read(), caption=caption, mimetype="image/png")
+      imagen_bytes = f.read()
+
+    print(f"[main] Tamaño de la imagen: {len(imagen_bytes)} bytes")
+    print("[main] Enviando la lámina por WhatsApp...")
+    resultado = enviar_imagen(imagen_bytes, caption=caption, mimetype="image/png")
     print(f"[main] Enviado OK: {resultado}")
 
 
