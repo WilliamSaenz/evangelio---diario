@@ -7,9 +7,17 @@ Fuente principal:  ACI Prensa   (aciprensa.com/calendario/YYYY-MM-DD)
 Segunda fuente:     Dominicos.org (dominicos.org/predicacion/evangelio-del-dia/hoy/)
 
 Ambas son páginas HTML públicas, sin API key, sin costo.
+
+CAMBIO (21/7/2026): se agrega verificación de que el contenido devuelto por
+ACI Prensa realmente corresponda a la fecha pedida (buscando el literal
+"D de mes de AAAA" dentro del texto de la página) y reintentos con espera si
+todavía no coincide. Esto evita que, si el sitio no actualizó su contenido
+al momento exacto de la corrida (p. ej. muy temprano a la mañana), la
+automatización mande en silencio el Evangelio de un día anterior.
 """
 import re
 import sys
+import time
 import requests
 from datetime import date
 from bs4 import BeautifulSoup
@@ -18,6 +26,12 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; EvangelioDiarioBot/1.0; +personal use)"
 }
 TIMEOUT = 20
+
+MESES = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril", 5: "mayo", 6: "junio",
+    7: "julio", 8: "agosto", 9: "septiembre", 10: "octubre", 11: "noviembre",
+    12: "diciembre",
+}
 
 
 class FuenteNoDisponible(Exception):
@@ -33,11 +47,53 @@ def _get_text(url: str) -> str:
     return soup.get_text("\n", strip=True)
 
 
-def fetch_from_aciprensa(target_date: date) -> dict:
-    """Fuente principal. Devuelve celebracion, color, cita, texto, url."""
+def _literales_fecha(target_date: date) -> list[str]:
+    """Formas aceptadas de la fecha en español tal como aparece en ACI Prensa,
+    p. ej. '21 de julio de 2026' y '9 de julio de 2026' / '09 de julio de 2026'."""
+    mes = MESES[target_date.month]
+    dia_sin_cero = str(target_date.day)
+    dia_con_cero = f"{target_date.day:02d}"
+    anio = target_date.year
+    return [
+        f"{dia_sin_cero} de {mes} de {anio}",
+        f"{dia_con_cero} de {mes} de {anio}",
+    ]
+
+
+def _fecha_coincide(text: str, target_date: date) -> bool:
+    texto_lower = text.lower()
+    return any(lit in texto_lower for lit in _literales_fecha(target_date))
+
+
+def fetch_from_aciprensa(
+    target_date: date,
+    intentos: int = 3,
+    espera_seg: int = 240,
+) -> dict:
+    """Fuente principal. Devuelve celebracion, color, cita, texto, url.
+
+    Reintenta si la página todavía no muestra el literal de la fecha pedida
+    (caso típico: el sitio no roló al día nuevo cuando corremos muy temprano).
+    """
     url = f"https://www.aciprensa.com/calendario/{target_date.isoformat()}"
-    text = _get_text(url)
-    return _parse_aciprensa(text, url)
+
+    ultimo_error = None
+    for intento in range(1, intentos + 1):
+        text = _get_text(url)
+        if _fecha_coincide(text, target_date):
+            return _parse_aciprensa(text, url)
+        ultimo_error = (
+            f"El contenido de {url} no muestra la fecha esperada "
+            f"({_literales_fecha(target_date)[0]}) — intento {intento}/{intentos}"
+        )
+        print(f"[aviso] {ultimo_error}", file=sys.stderr)
+        if intento < intentos:
+            time.sleep(espera_seg)
+
+    raise FuenteNoDisponible(
+        f"ACI Prensa no mostró el Evangelio de {target_date.isoformat()} "
+        f"después de {intentos} intentos. Último aviso: {ultimo_error}"
+    )
 
 
 def _parse_aciprensa(text: str, url: str) -> dict:
