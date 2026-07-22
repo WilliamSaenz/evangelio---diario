@@ -1,19 +1,19 @@
 """
 fetch_gospel.py
-Obtiene el Evangelio del día desde dos fuentes católicas independientes
-y las cruza para verificación, tal como exige el prompt maestro.
+Obtiene el Evangelio del día para la automatización "Evangelio de Hoy".
 
-Fuente principal:  ACI Prensa   (aciprensa.com/calendario/YYYY-MM-DD)
-Segunda fuente:     Dominicos.org (dominicos.org/predicacion/evangelio-del-dia/hoy/)
+CAMBIO (22/7/2026): se reemplaza ACI Prensa como fuente PRINCIPAL por
+Vatican News (vaticannews.va). Motivo: se detectó que ACI Prensa podía
+tardar varias horas en publicar el contenido del día (más de las que
+alcanza a cubrir un reintento corto), causando que la automatización de
+las 4:30 a.m. mandara en silencio el Evangelio del día anterior.
+Vatican News confirmado que publica el contenido del día siguiente desde
+la noche anterior, con una fecha explícita ("FechaDD/MM/AAAA") que permite
+validar sin ambigüedad que el contenido corresponde al día pedido.
 
-Ambas son páginas HTML públicas, sin API key, sin costo.
-
-CAMBIO (21/7/2026): se agrega verificación de que el contenido devuelto por
-ACI Prensa realmente corresponda a la fecha pedida (buscando el literal
-"D de mes de AAAA" dentro del texto de la página) y reintentos con espera si
-todavía no coincide. Esto evita que, si el sitio no actualizó su contenido
-al momento exacto de la corrida (p. ej. muy temprano a la mañana), la
-automatización mande en silencio el Evangelio de un día anterior.
+Fuente principal:   Vatican News   (vaticannews.va/es/evangelio-de-hoy/AAAA/MM/DD.html)
+Fuente de cruce:     Dominicos.org (dominicos.org/predicacion/evangelio-del-dia/hoy/)
+Fuente de respaldo:  ACI Prensa    (solo si Vatican News falla del todo)
 """
 import re
 import sys
@@ -47,97 +47,90 @@ def _get_text(url: str) -> str:
     return soup.get_text("\n", strip=True)
 
 
-def _literales_fecha(target_date: date) -> list[str]:
-    """Formas aceptadas de la fecha en español tal como aparece en ACI Prensa,
-    p. ej. '21 de julio de 2026' y '9 de julio de 2026' / '09 de julio de 2026'."""
-    mes = MESES[target_date.month]
-    dia_sin_cero = str(target_date.day)
-    dia_con_cero = f"{target_date.day:02d}"
-    anio = target_date.year
-    return [
-        f"{dia_sin_cero} de {mes} de {anio}",
-        f"{dia_con_cero} de {mes} de {anio}",
-    ]
+# ---------------------------------------------------------------------------
+# FUENTE PRINCIPAL: Vatican News
+# ---------------------------------------------------------------------------
 
-
-def _fecha_coincide(text: str, target_date: date) -> bool:
-    texto_lower = text.lower()
-    return any(lit in texto_lower for lit in _literales_fecha(target_date))
-
-
-def fetch_from_aciprensa(
+def fetch_from_vaticannews(
     target_date: date,
     intentos: int = 3,
-    espera_seg: int = 240,
+    espera_seg: int = 120,
 ) -> dict:
-    """Fuente principal. Devuelve celebracion, color, cita, texto, url.
-
-    Reintenta si la página todavía no muestra el literal de la fecha pedida
-    (caso típico: el sitio no roló al día nuevo cuando corremos muy temprano).
-    """
-    url = f"https://www.aciprensa.com/calendario/{target_date.isoformat()}"
+    """Fuente principal. Publica con mucha anticipación (confirmado: la
+    noche anterior), por lo que no debería necesitar los reintentos largos
+    que sí hacían falta con ACI Prensa. Se dejan igual como red de
+    seguridad ante fallas transitorias de red."""
+    y, m, d = target_date.year, target_date.month, target_date.day
+    url = f"https://www.vaticannews.va/es/evangelio-de-hoy/{y}/{m:02d}/{d:02d}.html"
+    fecha_esperada = f"{d:02d}/{m:02d}/{y}"
 
     ultimo_error = None
     for intento in range(1, intentos + 1):
-        text = _get_text(url)
-        if _fecha_coincide(text, target_date):
-            return _parse_aciprensa(text, url)
-        ultimo_error = (
-            f"El contenido de {url} no muestra la fecha esperada "
-            f"({_literales_fecha(target_date)[0]}) — intento {intento}/{intentos}"
-        )
-        print(f"[aviso] {ultimo_error}", file=sys.stderr)
+        try:
+            text = _get_text(url)
+        except Exception as e:
+            ultimo_error = f"error de red: {e}"
+            print(f"[aviso] Vatican News intento {intento}/{intentos}: {ultimo_error}", file=sys.stderr)
+            if intento < intentos:
+                time.sleep(espera_seg)
+            continue
+
+        if re.search(r"Fecha\s*" + re.escape(fecha_esperada), text):
+            try:
+                return _parse_vaticannews(text, url)
+            except FuenteNoDisponible as e:
+                ultimo_error = str(e)
+                print(f"[aviso] {ultimo_error} (intento {intento}/{intentos})", file=sys.stderr)
+        else:
+            ultimo_error = f"la página no muestra todavía 'Fecha{fecha_esperada}'"
+            print(f"[aviso] Vatican News: {ultimo_error} (intento {intento}/{intentos})", file=sys.stderr)
+            print(f"[debug] primeros 300 caracteres recibidos: {text[:300]!r}", file=sys.stderr)
+
         if intento < intentos:
             time.sleep(espera_seg)
 
     raise FuenteNoDisponible(
-        f"ACI Prensa no mostró el Evangelio de {target_date.isoformat()} "
+        f"Vatican News no dio el Evangelio de {target_date.isoformat()} "
         f"después de {intentos} intentos. Último aviso: {ultimo_error}"
     )
 
 
-def _parse_aciprensa(text: str, url: str) -> dict:
-    m_cel = re.search(
-        r"\n([^\n]{3,80})\n+"
-        r"[a-záéíóúñ]+ \d{1,2},\s*\d{4}\n+"
-        r"«\s*Día anterior",
-        text,
-        re.IGNORECASE,
-    )
+def _parse_vaticannews(text: str, url: str) -> dict:
+    m_cel = re.search(r"Fecha\s*\d{2}/\d{2}/\d{4}\s*\n+([^\n]+)", text)
     celebracion = m_cel.group(1).strip() if m_cel else None
 
-    m_color = re.search(r"Color:\s*([A-Za-zÁÉÍÓÚñáéíóú]+)", text)
-    color = m_color.group(1).strip() if m_color else None
-
     m_ev = re.search(
-        r"\nEvangelio\s*\n"
-        r"([A-ZÁÉÍÓÚa-záéíóúñ][A-Za-zÁÉÍÓÚñáéíóú0-9,:\.\-\s]*?)\n"
-        r"(.*?)"
-        r"(?:\nOR\n|\nÚltimas noticias|\Z)",
+        r"Evangelio del [Dd]ía\s*\n+"
+        r"Lectura del santo evangelio según\s+(.+?)\s*\n+"
+        r"([A-Za-zÁÉÍÓÚñáéíóú]+\s+\d+[^\n]*)\n+"
+        r"(.*?)\n+"
+        r"(?:Las palabras de los Papas|Palabras del Papa|$)",
         text,
         re.DOTALL,
     )
     if not m_ev:
-        raise FuenteNoDisponible(f"No se pudo extraer el Evangelio de {url}")
+        raise FuenteNoDisponible(f"No se pudo extraer el Evangelio de {url} (cambió el formato de la página)")
 
-    cita = m_ev.group(1).strip()
-    cuerpo_crudo = m_ev.group(2).strip()
-    cuerpo = re.sub(r"(?m)^\s*\d{1,3}", "", cuerpo_crudo)
-    cuerpo = re.sub(r"\n{1,}", " ", cuerpo).strip()
-    cuerpo = re.sub(r"\s{2,}", " ", cuerpo)
+    evangelista = m_ev.group(1).strip()
+    cita = m_ev.group(2).strip()
+    cuerpo = re.sub(r"\s{2,}|\n+", " ", m_ev.group(3).strip()).strip()
 
     if not celebracion or not cita or not cuerpo:
         raise FuenteNoDisponible(f"Extracción incompleta de {url}")
 
     return {
-        "fuente": "ACI Prensa",
+        "fuente": "Vatican News",
         "url": url,
         "celebracion": celebracion,
-        "color_liturgico": color,
+        "evangelista": evangelista,
         "cita": cita,
         "texto": cuerpo,
     }
 
+
+# ---------------------------------------------------------------------------
+# FUENTE DE CRUCE: Dominicos.org
+# ---------------------------------------------------------------------------
 
 def _parse_dominicos(text_intro: str, text_lect: str, url_intro: str) -> dict:
     m_ciclo = re.search(
@@ -146,9 +139,6 @@ def _parse_dominicos(text_intro: str, text_lect: str, url_intro: str) -> dict:
     )
     anio_liturgico = m_ciclo.group(1).strip() if m_ciclo else None
     ciclo = m_ciclo.group(2).strip() if m_ciclo else None
-
-    m_cel = re.search(r"Homilía\s+(.+)", text_intro)
-    celebracion = m_cel.group(1).strip() if m_cel else None
 
     m_ev = re.search(
         r"Evangelio del día\s*\n+"
@@ -167,7 +157,6 @@ def _parse_dominicos(text_intro: str, text_lect: str, url_intro: str) -> dict:
     return {
         "fuente": "Dominicos.org (Orden de Predicadores)",
         "url": url_intro,
-        "celebracion": celebracion,
         "anio_liturgico": anio_liturgico,
         "ciclo": ciclo,
         "cita": cita,
@@ -176,31 +165,68 @@ def _parse_dominicos(text_intro: str, text_lect: str, url_intro: str) -> dict:
 
 
 def fetch_from_dominicos() -> dict:
-    """Segunda fuente (verificación). Usa el endpoint 'hoy' del sitio."""
     url_intro = "https://www.dominicos.org/predicacion/evangelio-del-dia/hoy/"
     url_lecturas = "https://www.dominicos.org/predicacion/evangelio-del-dia/hoy/lecturas/"
-
     text_intro = _get_text(url_intro)
     text_lect = _get_text(url_lecturas)
     return _parse_dominicos(text_intro, text_lect, url_intro)
 
 
+# ---------------------------------------------------------------------------
+# FUENTE DE RESPALDO (solo si Vatican News falla del todo): ACI Prensa
+# ---------------------------------------------------------------------------
+
+def _literales_fecha(target_date: date) -> list[str]:
+    mes = MESES[target_date.month]
+    return [
+        f"{target_date.day} de {mes} de {target_date.year}",
+        f"{target_date.day:02d} de {mes} de {target_date.year}",
+    ]
+
+
+def fetch_from_aciprensa(target_date: date) -> dict:
+    """Respaldo de última instancia. NO se usa por defecto: ver aviso en
+    verificar_y_obtener(). Se conserva por si Vatican News está caído."""
+    url = f"https://www.aciprensa.com/calendario/{target_date.isoformat()}"
+    text = _get_text(url)
+
+    m_ev = re.search(
+        r"\nEvangelio\s*\n"
+        r"([A-ZÁÉÍÓÚa-záéíóúñ][A-Za-zÁÉÍÓÚñáéíóú0-9,:\.\-\s]*?)\n"
+        r"(.*?)"
+        r"(?:\nOR\n|\nÚltimas noticias|\Z)",
+        text,
+        re.DOTALL,
+    )
+    if not m_ev:
+        raise FuenteNoDisponible(f"No se pudo extraer el Evangelio de {url}")
+
+    cita = m_ev.group(1).strip()
+    cuerpo = re.sub(r"(?m)^\s*\d{1,3}", "", m_ev.group(2).strip())
+    cuerpo = re.sub(r"\n{1,}", " ", cuerpo).strip()
+    cuerpo = re.sub(r"\s{2,}", " ", cuerpo)
+
+    return {"fuente": "ACI Prensa (respaldo)", "url": url, "celebracion": None, "cita": cita, "texto": cuerpo}
+
+
+# ---------------------------------------------------------------------------
+
 def _normaliza_cita(cita: str) -> str:
-    """Normaliza 'Mateo 10:7-15' / 'san Mateo 10, 7-15' -> 'mateo 10'."""
-    c = cita.lower()
-    c = c.replace("san ", "").replace("según ", "")
+    c = cita.lower().replace("san ", "").replace("según ", "")
     m = re.search(r"([a-záéíóúñ]+)\s+(\d+)", c)
     return f"{m.group(1)}{m.group(2)}" if m else c
 
 
 def verificar_y_obtener(target_date: date) -> dict:
     """
-    Trae ambas fuentes, verifica que coincidan en libro+capítulo,
-    y devuelve el paquete final de datos del Evangelio del día.
-    Si la segunda fuente falla o no coincide, igual continúa con la
-    principal pero deja constancia en 'verificado'.
+    Trae Vatican News (principal), cruza con Dominicos.org, y solo si
+    Vatican News falla del todo cae a ACI Prensa como último recurso.
     """
-    principal = fetch_from_aciprensa(target_date)
+    try:
+        principal = fetch_from_vaticannews(target_date)
+    except FuenteNoDisponible as e:
+        print(f"[aviso] Vatican News no disponible, usando ACI Prensa como respaldo: {e}", file=sys.stderr)
+        principal = fetch_from_aciprensa(target_date)
 
     verificado = False
     segunda = None
@@ -213,8 +239,7 @@ def verificar_y_obtener(target_date: date) -> dict:
 
     return {
         "fecha": target_date.isoformat(),
-        "celebracion": principal["celebracion"],
-        "color_liturgico": principal.get("color_liturgico"),
+        "celebracion": principal.get("celebracion"),
         "anio_liturgico": segunda.get("anio_liturgico") if segunda else None,
         "ciclo": segunda.get("ciclo") if segunda else None,
         "cita": principal["cita"],
