@@ -51,7 +51,9 @@ def _texto_de(soup: BeautifulSoup) -> str:
 
 def _normaliza_cita(cita: str) -> str:
     c = cita.lower().replace("san ", "").replace("según ", "").replace(".", "")
-    m = re.search(r"([a-záéíóúñ]+)\s+(\d+)", c)
+    # Acepta "juan 15", "mt 13,10-17" y también "mateo (13,10-17)" (paréntesis
+    # pegado al nombre del libro, como lo escribe Ciudad Redonda).
+    m = re.search(r"([a-záéíóúñ]+)[\s(]+(\d+)", c)
     if not m:
         return c
     libro = LIBRO_MAP.get(m.group(1), m.group(1))
