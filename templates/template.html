@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --crema:        #fbf6ec;
+    --crema-clara:  #fdfbf4;
+    --blanco:       #ffffff;
+    --tinta:        #2b2620;
+    --texto:        #2b2620;
+    --gris:         #767267;
+    --oro:          #c9a227;
+    --oro-oscuro:   #a8851d;
+    --rojo:         #c62828;
+    --verde:        #2e7d32;
+    --verde-osc:    #1e5a34;
+    --verde-panel:  #163f24;
+    --azul:         #1565c0;
+    --morado:       #6a1b9a;
+    --marron:       #b5651d;
+    --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    --sans:  'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: {{ ancho }}px;
+    font-family: var(--sans);
+    background: var(--crema);
+    color: var(--texto);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #lamina { width: {{ ancho }}px; background: var(--crema); }
+
+  /* ------------------------------------------------------------ HEADER */
+  .header {
+    background: var(--crema-clara);
+    padding: 34px 46px 30px;
+    display: flex;
+    align-items: center;
+    gap: 34px;
+  }
+
+  .calendario {
+    width: 158px; flex: 0 0 158px;
+    background: var(--blanco);
+    border-radius: 14px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.10);
+    overflow: hidden;
+    text-align: center;
+    position: relative;
+  }
+  .calendario::before, .calendario::after {
+    content: ""; position: absolute; top: 6px;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #d8d8d8; z-index: 2;
+  }
+  .calendario::before { left: 26px; }
+  .calendario::after  { right: 26px; }
+  .cal-dia {
+    background: var(--rojo); color: #fff;
+    font-weight: 700; font-size: 15px; letter-spacing: .09em;
+    padding: 12px 4px 8px;
+  }
+  .cal-num {
+    font-family: var(--serif); font-weight: 900;
+    font-size: 64px; line-height: 1.05; color: var(--tinta);
+    padding-top: 8px;
+  }
+  .cal-mes {
+    font-weight: 700; font-size: 15px; letter-spacing: .10em;
+    color: #555; padding-bottom: 2px;
+  }
+  .cal-anio {
+    font-weight: 600; font-size: 15px; color: var(--gris);
+    padding-bottom: 14px;
+  }
+
+  .titulo-bloque { flex: 1 1 auto; }
+  .titulo {
+    font-family: var(--serif); font-weight: 900;
+    font-size: 62px; line-height: .98; letter-spacing: .01em;
+    color: var(--tinta); text-transform: uppercase;
+  }
+  .cita-pill {
+    display: inline-block; margin-top: 16px;
+    background: linear-gradient(180deg, var(--oro), var(--oro-oscuro));
+    color: #fff; font-weight: 700; font-size: 22px;
+    padding: 11px 30px; border-radius: 999px;
+    box-shadow: 0 3px 7px rgba(0,0,0,.16);
+  }
+
+  .header-img {
+    flex: 0 0 380px; height: 210px;
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0,0,0,.14);
+    background: var(--oro);
+  }
+  .header-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ------------------------------------------------------------ CUERPO */
+  .cuerpo { padding: 26px 46px 34px; }
+
+  /* Evangelio: va COMPLETO e intacto, con la frase clave resaltada */
+  .evangelio {
+    background: var(--blanco);
+    border-radius: 16px;
+    padding: 28px 38px 30px 34px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    display: flex; gap: 18px;
+  }
+  .comilla {
+    font-family: var(--serif); font-weight: 900;
+    font-size: 76px; line-height: .72; color: var(--rojo);
+    flex: 0 0 auto;
+  }
+  .evangelio-texto {
+    font-size: 21px; line-height: 1.52; text-align: justify;
+    color: var(--texto); white-space: pre-line;
+  }
+  .evangelio-texto strong {
+    color: var(--marron); font-weight: 700;
+  }
+
+  /* ---------------------------------------------------------- COLUMNAS */
+  .columnas {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 22px; margin-top: 24px;
+  }
+  .col {
+    background: var(--blanco); border-radius: 16px;
+    padding: 22px 22px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    display: flex; flex-direction: column;
+  }
+  .col-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .col-icono {
+    width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex: 0 0 46px;
+  }
+  .col-icono svg {
+    width: 26px; height: 26px;
+    stroke: #fff; fill: none; stroke-width: 3.4;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .col-titulo {
+    font-weight: 700; font-size: 21px; letter-spacing: .05em;
+  }
+  .col-img {
+    width: 100%; height: 178px; border-radius: 10px;
+    overflow: hidden; margin-bottom: 16px;
+  }
+  .col-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .col-texto { font-size: 18px; line-height: 1.45; }
+  .col-frase {
+    font-weight: 700; font-size: 18px; line-height: 1.35;
+    text-align: center; margin: 16px 0 14px;
+  }
+  .col-fuente {
+    margin-top: auto; padding-top: 12px;
+    border-top: 1px solid #e8e4d8;
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 13.5px; color: var(--gris); line-height: 1.35;
+  }
+  .col-fuente svg {
+    width: 15px; height: 15px; flex: 0 0 15px; margin-top: 2px;
+    stroke: var(--gris); fill: none; stroke-width: 3;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .c-teologia    .col-icono { background: var(--verde); }
+  .c-teologia    .col-titulo, .c-teologia .col-frase { color: var(--verde); }
+  .c-psicologia  .col-icono { background: var(--azul); }
+  .c-psicologia  .col-titulo, .c-psicologia .col-frase { color: var(--azul); }
+  .c-neuro       .col-icono { background: var(--morado); }
+  .c-neuro       .col-titulo, .c-neuro .col-frase { color: var(--morado); }
+
+  /* --------------------------------------------------------- PRÁCTICAS */
+  .practicas { margin-top: 24px; border-radius: 16px; overflow: hidden; }
+  .practicas-head {
+    background: var(--verde-panel); color: #fff;
+    padding: 16px 26px; display: flex; align-items: center; gap: 13px;
+    font-weight: 700; font-size: 23px; letter-spacing: .05em;
+  }
+  .practicas-head svg { width: 26px; height: 26px; stroke: #fff; fill: none;
+                        stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+  .practicas-body {
+    background: var(--verde-osc);
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    padding: 26px 10px 28px;
+  }
+  .practica {
+    text-align: center; padding: 0 22px;
+    border-left: 1px solid rgba(255,255,255,.18);
+  }
+  .practica:first-child { border-left: none; }
+  .practica-icono {
+    width: 58px; height: 58px; border-radius: 50%;
+    background: rgba(255,255,255,.12);
+    margin: 0 auto 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .practica-icono svg {
+    width: 30px; height: 30px; stroke: var(--oro); fill: none;
+    stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .practica-titulo {
+    color: #fff; font-weight: 700; font-size: 20px;
+    letter-spacing: .04em; margin-bottom: 8px;
+  }
+  .practica-desc { color: rgba(255,255,255,.9); font-size: 17px; line-height: 1.4; }
+
+  /* ------------------------------------------------------------ CIERRE */
+  .cierre {
+    margin-top: 24px; border-radius: 16px;
+    background: linear-gradient(90deg, #f3e7d0, #f8efe0);
+    padding: 22px 30px; display: flex; align-items: center; gap: 26px;
+  }
+  .cierre-icono {
+    width: 66px; height: 66px; flex: 0 0 66px; border-radius: 50%;
+    background: var(--rojo); display: flex; align-items: center; justify-content: center;
+  }
+  .cierre-icono svg { width: 32px; height: 32px; stroke: #fff; fill: #fff;
+                      stroke-width: 2; stroke-linejoin: round; }
+  .cierre-frase {
+    flex: 1 1 auto; text-align: center;
+    font-family: var(--serif); font-weight: 700;
+    font-size: 27px; line-height: 1.3; color: var(--tinta);
+  }
+  .cierre-img {
+    flex: 0 0 200px; height: 118px; border-radius: 10px;
+    overflow: hidden; background: var(--oro);
+  }
+  .cierre-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ------------------------------------------------------------ FUENTES */
+  .fuentes {
+    margin-top: 24px; background: var(--tinta); color: #dcdcdc;
+    border-radius: 14px; padding: 18px 24px;
+    display: flex; align-items: center; gap: 22px; font-size: 15px;
+  }
+  .fuentes svg { width: 19px; height: 19px; stroke: #dcdcdc; fill: none;
+                 stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .fuentes-label { font-weight: 700; letter-spacing: .07em; flex: 0 0 auto; }
+  .fuentes-items { display: flex; gap: 26px; flex: 1 1 auto; line-height: 1.35; }
+  .fuentes-items b { color: #fff; font-weight: 700; }
+  .ws {
+    flex: 0 0 auto; background: var(--rojo); color: #fff;
+    font-weight: 700; font-size: 18px; letter-spacing: .04em;
+    padding: 9px 18px; border-radius: 7px;
+  }
+</style>
+</head>
+<body>
+<div id="lamina">
+
+  <!-- ============================================================ HEADER -->
+  <div class="header">
+    <div class="calendario">
+      <div class="cal-dia">{{ dia_semana }}</div>
+      <div class="cal-num">{{ dia_numero }}</div>
+      <div class="cal-mes">{{ mes }}</div>
+      <div class="cal-anio">{{ anio }}</div>
+    </div>
+    <div class="titulo-bloque">
+      <div class="titulo">Evangelio<br>de hoy</div>
+      <div class="cita-pill">{{ cita }}</div>
+    </div>
+    <div class="header-img"><img src="{{ imagenes.header }}" alt=""></div>
+  </div>
+
+  <div class="cuerpo">
+
+    <!-- ====================================================== EVANGELIO -->
+    <div class="evangelio">
+      <div class="comilla">&ldquo;</div>
+      <div class="evangelio-texto">{{ evangelio_html | safe }}</div>
+    </div>
+
+    <!-- ======================================================= COLUMNAS -->
+    <div class="columnas">
+      {% for col in columnas %}
+      <div class="col {{ col.clase }}">
+        <div class="col-head">
+          <div class="col-icono">
+            <svg viewBox="0 0 48 48">{{ col.icono_svg | safe }}</svg>
+          </div>
+          <div class="col-titulo">{{ col.titulo }}</div>
+        </div>
+        <div class="col-img"><img src="{{ col.imagen }}" alt=""></div>
+        <div class="col-texto">{{ col.texto }}</div>
+        <div class="col-frase">{{ col.frase }}</div>
+        <div class="col-fuente">
+          <svg viewBox="0 0 48 48">{{ icono_libro | safe }}</svg>
+          <span>{{ col.fuente }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- ====================================================== PRÁCTICAS -->
+    <div class="practicas">
+      <div class="practicas-head">
+        <svg viewBox="0 0 48 48"><path d="M10 25l10 10 18-22"/></svg>
+        PRÁCTICAS DE HOY
+      </div>
+      <div class="practicas-body">
+        {% for p in practicas %}
+        <div class="practica">
+          <div class="practica-icono">
+            <svg viewBox="0 0 48 48">{{ p.icono_svg | safe }}</svg>
+          </div>
+          <div class="practica-titulo">{{ loop.index }}. {{ p.titulo | upper }}</div>
+          <div class="practica-desc">{{ p.descripcion }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ========================================================= CIERRE -->
+    <div class="cierre">
+      <div class="cierre-icono">
+        <svg viewBox="0 0 48 48"><path d="M24 39s-13-8-13-17a7.5 7.5 0 0 1 13-5 7.5 7.5 0 0 1 13 5c0 9-13 17-13 17z"/></svg>
+      </div>
+      <div class="cierre-frase">{{ frase_cierre }}</div>
+      <div class="cierre-img"><img src="{{ imagenes.cierre }}" alt=""></div>
+    </div>
+
+    <!-- ======================================================== FUENTES -->
+    <div class="fuentes">
+      <svg viewBox="0 0 48 48">{{ icono_libro | safe }}</svg>
+      <span class="fuentes-label">FUENTES:</span>
+      <div class="fuentes-items">
+        <span><b>Evangelio:</b> {{ fuente_evangelio }}</span>
+        <span><b>Verificado en:</b> {{ fuentes_verificacion }}</span>
+        <span><b>Referencias:</b> ver cada columna</span>
+      </div>
+      <div class="ws">{{ ws }}</div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
