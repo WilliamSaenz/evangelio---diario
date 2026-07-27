@@ -46,14 +46,28 @@ USER_AGENT = (
 # Gemini
 # ---------------------------------------------------------------------------
 
-# OJO: gemini-2.0-flash topea en 8192 tokens de salida. Si el modelo se cambia
-# a 2.0, hay que bajar GEMINI_MAX_TOKENS o la API rechaza el pedido.
-GEMINI_MODELO = "gemini-2.5-flash"
+# Google deprecia modelos seguido y de golpe: gemini-2.5-flash dejó de estar
+# disponible para cuentas nuevas y devuelve 404 NOT_FOUND. Por eso no se usa un
+# modelo fijo sino una lista: se prueba en orden y se usa el primero que
+# responda. Si mañana cae el primero, sigue de largo con el siguiente en vez de
+# dejarte sin lámina.
+#
+# Estado a julio de 2026:
+#   gemini-3.6-flash       GA, el más nuevo y el más barato por token de salida
+#   gemini-3.5-flash       GA, es el que está detrás del alias gemini-flash-latest
+#   gemini-3.5-flash-lite  GA, el más rápido y económico
+#   gemini-flash-latest    alias: siempre apunta al último; última red de contención
+GEMINI_MODELOS = [
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-flash-latest",
+]
 GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
 )
-GEMINI_MAX_TOKENS = 65536
-GEMINI_REINTENTOS = 3
+GEMINI_MAX_TOKENS = 65536  # los modelos 3.x admiten 64k de salida
+GEMINI_REINTENTOS = 2      # por modelo; con 4 modelos son hasta 8 intentos
 
 # ---------------------------------------------------------------------------
 # Imágenes (Pollinations / Flux — gratis, sin API key)
