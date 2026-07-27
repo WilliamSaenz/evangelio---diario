@@ -18,7 +18,7 @@ import requests
 from config import (
     ESTILO_ILUSTRACION,
     GEMINI_MAX_TOKENS,
-    GEMINI_MODELO,
+    GEMINI_MODELOS,
     GEMINI_REINTENTOS,
     GEMINI_URL,
     HTTP_TIMEOUT,
@@ -151,8 +151,12 @@ Escribí todo en español rioplatense neutro, salvo los prompts de imagen que va
 # ---------------------------------------------------------------------------
 
 
-def _llamar_gemini(prompt: str, api_key: str) -> dict:
-    url = GEMINI_URL.format(modelo=GEMINI_MODELO)
+class ModeloNoDisponible(Exception):
+    """El modelo no existe o fue deprecado: hay que pasar al siguiente."""
+
+
+def _llamar_gemini(prompt: str, api_key: str, modelo: str) -> dict:
+    url = GEMINI_URL.format(modelo=modelo)
     payload = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -169,6 +173,10 @@ def _llamar_gemini(prompt: str, api_key: str) -> dict:
         json=payload,
         timeout=HTTP_TIMEOUT * 3,
     )
+    if r.status_code == 404:
+        # Modelo inexistente o deprecado. No tiene sentido reintentar: se pasa
+        # directamente al siguiente de la lista.
+        raise ModeloNoDisponible(r.text[:300])
     if r.status_code != 200:
         raise RuntimeError(f"Gemini HTTP {r.status_code}: {r.text[:500]}")
 
@@ -182,8 +190,13 @@ def _llamar_gemini(prompt: str, api_key: str) -> dict:
     if motivo not in (None, "STOP"):
         raise RuntimeError(f"Gemini cortó la respuesta (finishReason={motivo})")
 
+    # Los modelos 3.x razonan antes de responder y devuelven esos pasos como
+    # partes marcadas con "thought": true. Si se concatenan junto al resto, el
+    # JSON queda corrupto. Nos quedamos solo con las partes de respuesta.
     partes = cand.get("content", {}).get("parts") or []
-    crudo = "".join(p.get("text", "") for p in partes).strip()
+    crudo = "".join(
+        p.get("text", "") for p in partes if not p.get("thought")
+    ).strip()
     if not crudo:
         raise RuntimeError("Gemini devolvió una respuesta vacía")
 
@@ -223,19 +236,28 @@ def generar_contenido(ev: Evangelio, api_key: str | None = None) -> dict:
     prompt = construir_prompt(ev)
     ultimo_error: Exception | None = None
 
-    for intento in range(1, GEMINI_REINTENTOS + 1):
-        print(f"  → Gemini ({GEMINI_MODELO}), intento {intento}/{GEMINI_REINTENTOS}")
-        try:
-            contenido = _llamar_gemini(prompt, api_key)
-            print(f"    ✓ idea central: {contenido['idea_central']}")
-            return _validar(contenido, ev)
-        except Exception as e:  # noqa: BLE001 — queremos reintentar ante cualquier cosa
-            ultimo_error = e
-            print(f"    ✗ {e}")
-            if intento < GEMINI_REINTENTOS:
-                time.sleep(5 * intento)
+    for modelo in GEMINI_MODELOS:
+        for intento in range(1, GEMINI_REINTENTOS + 1):
+            print(f"  → Gemini ({modelo}), intento {intento}/{GEMINI_REINTENTOS}")
+            try:
+                contenido = _llamar_gemini(prompt, api_key, modelo)
+                print(f"    ✓ idea central: {contenido['idea_central']}")
+                return _validar(contenido, ev)
+            except ModeloNoDisponible as e:
+                # Deprecado o inexistente: no se reintenta, se pasa al siguiente.
+                ultimo_error = e
+                print(f"    ✗ modelo no disponible, probando el siguiente")
+                break
+            except Exception as e:  # noqa: BLE001
+                ultimo_error = e
+                print(f"    ✗ {e}")
+                if intento < GEMINI_REINTENTOS:
+                    time.sleep(5 * intento)
 
-    raise RuntimeError(f"Gemini falló tras {GEMINI_REINTENTOS} intentos: {ultimo_error}")
+    raise RuntimeError(
+        f"Ningún modelo de Gemini funcionó. Probados: {', '.join(GEMINI_MODELOS)}. "
+        f"Último error: {ultimo_error}"
+    )
 
 
 if __name__ == "__main__":
