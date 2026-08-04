@@ -370,9 +370,45 @@ ORDEN_PREFERENCIA = {"dominicos.org": 0, "evangeli.net": 1, "ciudadredonda.org":
 FUENTES_ANCLADAS = {"dominicos.org", "evangeli.net"}
 
 
-def obtener_evangelio(fecha: date) -> Evangelio:
-    """Devuelve el Evangelio verificado, o levanta RuntimeError."""
+FUENTES_DISPONIBLES = {
+    "dominicos.org": desde_dominicos,
+    "evangeli.net": desde_evangeli,
+}
+
+
+def obtener_evangelio(fecha: date, forzar_fuente: str | None = None) -> Evangelio:
+    """Devuelve el Evangelio verificado, o levanta RuntimeError.
+
+    forzar_fuente: solo para uso manual (workflow_dispatch), NUNCA en la
+    corrida automática de las 4:30. Sirve para los días de doble opción
+    litúrgica válida (ej. una memoria con dos lecturas oficiales), donde
+    dos fuentes ancladas por fecha pueden "discrepar" sin que ninguna esté
+    mal — cada una tomó una opción distinta. En ese caso no hay forma
+    automática de decidir cuál mandar; la persona elige y lo fuerza acá.
+    Toma el texto de la fuente indicada tal cual, sin cruce con las demás.
+    """
     print(f"\n=== Evangelio del {fecha.isoformat()} ===")
+
+    if forzar_fuente:
+        fn = FUENTES_DISPONIBLES.get(forzar_fuente)
+        if fn is None:
+            raise RuntimeError(
+                f"forzar_fuente={forzar_fuente!r} inválido. "
+                f"Opciones: {', '.join(FUENTES_DISPONIBLES)}"
+            )
+        print(f"  ⚠ FORZADO MANUAL: se toma {forzar_fuente} sin cruzar con otras fuentes")
+        lectura = fn(fecha)
+        if lectura is None or len(lectura.texto) < 120:
+            raise RuntimeError(f"{forzar_fuente} no devolvió el Evangelio de {fecha.isoformat()}")
+        return Evangelio(
+            fecha=fecha,
+            cita=lectura.cita,
+            texto=lectura.texto,
+            fuente_texto=lectura.fuente,
+            titulo_liturgico=lectura.titulo,
+            fuentes_ok=[f"{lectura.fuente} (forzado a mano)"],
+            fuentes_fallidas=[],
+        )
 
     lecturas: list[Lectura] = []
     fallidas: list[str] = []
@@ -397,18 +433,17 @@ def obtener_evangelio(fecha: date) -> Evangelio:
             f"Hacen falta 2 coincidentes. Fallaron: {'; '.join(fallidas)}"
         )
 
-    # Si las DOS fuentes ancladas por fecha están disponibles y se contradicen,
-    # abortamos. Dejar que Ciudad Redonda (que solo publica "hoy") desempate
-    # sería justamente el mecanismo que puede publicar el Evangelio de ayer.
-    ancladas = {l.fuente: l for l in lecturas if l.fuente in FUENTES_ANCLADAS}
-    if len(ancladas) == 2:
-        a, b = ancladas.values()
-        if a.cita.clave != b.cita.clave:
-            raise RuntimeError(
-                f"Las dos fuentes ancladas por fecha se contradicen: "
-                f"{a.fuente} dice {a.cita} y {b.fuente} dice {b.cita}. "
-                "No se genera lámina; revisá a mano cuál corresponde."
-            )
+    # Antes esto abortaba directo si las dos fuentes ancladas discrepaban,
+    # asumiendo que un desacuerdo solo podía ser por staleness. Pero como
+    # ambas están ancladas por fecha (no pueden devolver otro día, ver
+    # docstring del módulo), un desacuerdo entre ellas ya no puede ser por
+    # eso — solo puede ser un día de doble opción litúrgica válida (ej. una
+    # memoria con dos lecturas oficiales) o, más raro, un error de una de
+    # las dos al parsear. En cualquiera de los dos casos, dejamos que
+    # decida la votación de mayoría de las 3 fuentes de más abajo: si
+    # Ciudad Redonda (que si puede estar rancia, por eso no cuenta como
+    # ancla) coincide con una de las dos, esa gana; si no coincide con
+    # ninguna, la votación no forma mayoría y aborta igual más abajo.
 
     # Mayoría por libro + capítulo
     conteo: dict[tuple[str, int], list[Lectura]] = {}
